@@ -7,6 +7,9 @@ import { Server as IOServer } from "socket.io";
 import AuthRoutes from "./routes/auth.routes";
 import PlaygroundRoutes from "./routes/project.routes";
 import { configDotenv } from "dotenv";
+import cookieParser from "cookie-parser";
+import cookieTest from "./middleware/cookietest";
+import checkAuthToken from "./middleware/checkAuthToken";
 const app = express();
 const server = createServer(app);
 const CLIENT_ORIGIN = "http://localhost:3000";
@@ -33,10 +36,12 @@ app.use(
   }),
 );
 
+app.use(cookieParser());
+
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/projects", PlaygroundRoutes);
 
-app.get("/hello-test", (req: Request, res: Response) => {
+app.get("/api/v1/hello-test", checkAuthToken, (req: Request, res: Response) => {
   res.send("Hello Bangladesh");
 });
 

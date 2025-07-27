@@ -19,6 +19,7 @@
     "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "cookie": "^1.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dockerode": "^4.0.7",
     "dotenv": "^17.2.0",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/dockerode": "^3.3.42",
     "@types/express": "^5.0.3",

@@ -12,14 +12,15 @@ async function issueTokensAndSetCookies(userId: string, res: Response) {
   const accessToken = generateAccessToken({ userId });
   const refreshToken = generateRefreshToken();
   await storeRefreshToken(userId, hashRefreshToken(refreshToken));
-  await setCookies(res, accessToken, refreshToken);
+  await setCookies(res, accessToken, refreshToken, userId);
 }
 const setCookies = async (
   res: Response,
   accessToken: string,
   refreshToken: string,
+  userId?: string,
 ) => {
-  res.setHeader("Set-Cookie", [
+  const cookieOptions = [
     serialize("access_token", accessToken, {
       //   httpOnly: true,
       maxAge: 60 * 15, // 15 minutes
@@ -29,12 +30,22 @@ const setCookies = async (
     }),
     serialize("refresh_token", refreshToken, {
       //   httpOnly: true,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
       sameSite: "lax",
       //   secure: process.env.NODE_ENV === "production",
     }),
-  ]);
+  ];
+  if (userId) {
+    cookieOptions.push(
+      serialize("user_id", userId, {
+        //   httpOnly: true,
+        path: "/",
+        sameSite: "lax",
+        //   secure: process.env.NODE_ENV === "production",
+      }),
+    );
+  }
+  res.setHeader("Set-Cookie", cookieOptions);
 };
 const sendUpdatedAccessToken = async (res: Response, accessToken: string) => {
   res.setHeader("Set-Cookie", [
@@ -47,4 +58,20 @@ const sendUpdatedAccessToken = async (res: Response, accessToken: string) => {
     }),
   ]);
 };
-export { issueTokensAndSetCookies, sendUpdatedAccessToken, setCookies };
+const sendUpdatedRefreshToken = async (res: Response, refreshToken: string) => {
+  res.setHeader("Set-Cookie", [
+    serialize("refresh_token", refreshToken, {
+      //   httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      //   secure: process.env.NODE_ENV === "production",
+    }),
+  ]);
+};
+
+export {
+  issueTokensAndSetCookies,
+  sendUpdatedAccessToken,
+  sendUpdatedRefreshToken,
+  setCookies,
+};

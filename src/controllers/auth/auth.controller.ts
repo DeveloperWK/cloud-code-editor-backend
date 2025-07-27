@@ -105,48 +105,48 @@ const deleteRefreshToken = async (req: Request, res: Response) => {
   }
 };
 
-const sendRefreshToken = async (req: Request, res: Response) => {
-  const { user_id } = req.body;
-  try {
-    const accessToken = generateAccessToken({ user_id });
-    const refreshToken = generateRefreshToken();
-    await updateRefreshToken(user_id, hashRefreshToken(refreshToken));
-    await setCookies(res, accessToken, refreshToken);
-    res.status(200).json({
-      message: "Refresh Token Updated",
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Internal Server Error",
-      error,
-    });
-  }
-};
-const sendAccessToken = async (req: Request, res: Response) => {
-  const { refresh_token, user_id } = req.body;
-  try {
-    if (!refresh_token || !user_id) {
-      res.status(404).json({
-        message: "refresh_token and user_id required",
-      });
-    }
-    const compare = await verifyRefreshToken(refresh_token);
-    if (compare) {
-      const accessToken = generateAccessToken({ user_id });
-      await sendUpdatedAccessToken(res, accessToken);
-      res.status(200).json({
-        message: "AccessToken Updated",
-      });
-    } else {
-      res.status(403).json({
-        message: "Refresh Token mismatch Forbidden Access",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      message: "Internal Server Error",
-      error,
-    });
-  }
-};
-export { deleteRefreshToken, login, sendAccessToken, sendRefreshToken, signup };
+// const sendRefreshToken = async (req: Request, res: Response) => {
+//   const { user_id } = req.body;
+//   try {
+//     const accessToken = generateAccessToken({ user_id });
+//     const refreshToken = generateRefreshToken();
+//     await updateRefreshToken(user_id, hashRefreshToken(refreshToken));
+//     await setCookies(res, accessToken, refreshToken,);
+//     res.status(200).json({
+//       message: "Refresh Token Updated",
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Internal Server Error",
+//       error,
+//     });
+//   }
+// };
+// const sendAccessToken = async (req: Request, res: Response) => {
+//   const { refresh_token, user_id } = req.body;
+//   try {
+//     if (!refresh_token || !user_id) {
+//       res.status(404).json({
+//         message: "refresh_token and user_id required",
+//       });
+//     }
+//     const compare = await verifyRefreshToken(refresh_token);
+//     if (compare) {
+//       const accessToken = generateAccessToken({ user_id });
+//       await sendUpdatedAccessToken(res, accessToken);
+//       res.status(200).json({
+//         message: "AccessToken Updated",
+//       });
+//     } else {
+//       res.status(403).json({
+//         message: "Refresh Token mismatch Forbidden Access",
+//       });
+//     }
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Internal Server Error",
+//       error,
+//     });
+//   }
+// };
+export { deleteRefreshToken, login, signup };
