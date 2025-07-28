@@ -20,6 +20,7 @@ const authorizeProjectAccess = async (
         .status(403)
         .json({ message: "Forbidden: You do not own this project." });
     }
+    req.project = project;
     next();
   } catch (error) {
     console.error(`Authorization error for project ${projectId}:`, error);
@@ -29,3 +30,4 @@ const authorizeProjectAccess = async (
     });
   }
 };
+export default authorizeProjectAccess;

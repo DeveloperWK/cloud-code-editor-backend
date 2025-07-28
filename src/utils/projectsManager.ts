@@ -38,7 +38,7 @@ async function updateProjectStatus(
   );
   const { error } = await spbClient
     .from("projects")
-    .update({ status, container_id: containerId })
+    .update({ status, container_id: containerId?.slice(0, 13) })
     .eq("project_id", id);
   if (error) {
     console.error("Error updating project status :", error);

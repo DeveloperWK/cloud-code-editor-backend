@@ -22,12 +22,14 @@ const checkAuthToken = async (
   const refreshToken = req.cookies.refresh_token;
   const userId = req.cookies.user_id;
   const isUserExists = await verifyUserById(userId);
+  console.log("accessToken from checkAuthToken", accessToken);
   try {
     const isVerifiedRefreshToken = await verifyRefreshToken(refreshToken);
     if (isVerifiedRefreshToken && !accessToken && isUserExists) {
       const newAccessToken = generateAccessToken({ userId });
       console.log("New Token Generate", newAccessToken);
       await sendUpdatedAccessToken(res, newAccessToken);
+      req.access_token = newAccessToken;
     }
   } catch (error) {
     console.error(error);
@@ -38,6 +40,7 @@ const checkAuthToken = async (
         const newAccessToken = generateAccessToken({ userId });
         console.log("New Token Generate on catch", newAccessToken);
         await setCookies(res, newAccessToken, newRefreshToken);
+        req.access_token = newAccessToken;
       } else {
         await sendUpdatedRefreshToken(res, newRefreshToken);
       }

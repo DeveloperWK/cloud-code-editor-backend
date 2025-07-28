@@ -10,7 +10,7 @@ const openProject = async (req: Request, res: Response): Promise<void> => {
   try {
     const containerId = await createContainer(projectId, userId!);
     res.status(200).json({
-      message: `Project ${projectId} opened successfully. Container ID: ${containerId}`,
+      message: `Project ${projectId} opened successfully.`,
       projectId,
       containerId,
     });

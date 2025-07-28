@@ -34,6 +34,7 @@ declare global {
         email: string;
         name: string;
       };
+      access_token?: string;
     }
   }
 }
