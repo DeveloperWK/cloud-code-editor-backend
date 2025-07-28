@@ -4,12 +4,20 @@ interface projects {
   team_id: string;
   name: string;
   description: string;
-  language_template_id: string;
-  status: "running" | "stopped" | "removed" | "saving" | "loading";
+  language_template: languageTemplate;
+  status:
+    | "running"
+    | "stopped"
+    | "removed"
+    | "saving"
+    | "loading"
+    | "active"
+    | "inactive";
   container_id: string;
-  last_active_at: Date;
+  last_active_at: string;
   created_at: Date;
   updated_at: Date;
+  initialized_with_template: boolean;
 }
 interface projectsRow {
   project_id?: string;
@@ -25,6 +33,17 @@ interface refreshToken {
   token: string;
   expires_at: Date;
 }
+
+interface languageTemplate {
+  id: string;
+  name: string;
+  docker_image: string;
+  default_files_path: string | null; // Path in Supabase Storage for template files
+  description: string | null;
+  created_at: string;
+  icon: string | null;
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -39,4 +58,4 @@ declare global {
   }
 }
 
-export { projects, projectsRow, refreshToken };
+export { projects, projectsRow, refreshToken, languageTemplate };

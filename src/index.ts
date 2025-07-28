@@ -12,6 +12,7 @@ import checkAuthToken from "./middleware/checkAuthToken";
 import notFound from "./middleware/notFound";
 import errorHandler from "./middleware/Error";
 import verifyAccessToken from "./middleware/verifyAccessToken";
+import spbClient from "./config/supabase.config";
 
 configDotenv();
 
@@ -45,8 +46,13 @@ app.use(cookieParser());
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/projects", checkAuthToken, verifyAccessToken, ProjectsRoutes);
 
-app.get("/api/v1/hello-test", checkAuthToken, (req: Request, res: Response) => {
-  res.send("Hello Bangladesh");
+app.get("/api/v1/hello-test", async (req: Request, res: Response) => {
+  // Use the JS library to create a bucket.
+
+  const { data, error } = await spbClient.storage.listBuckets();
+  console.log(data);
+  console.log(error);
+  res.send("Hello World!");
 });
 
 app.use(notFound);

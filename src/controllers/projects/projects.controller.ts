@@ -3,7 +3,7 @@ import spbClient from "../../config/supabase.config";
 import { projectsRow } from "../../types";
 import { createContainer } from "../../utils/dockerManager";
 import ptyExecuteCmd from "../../utils/nodePty";
-import { getProjectById } from "../../utils/projectsManager";
+import { getProjectById } from "../../utils/databaseManager";
 
 const executeCmd = (req: Request, res: Response) => {
   const { containerId, command, socketId } = req.body;
@@ -46,7 +46,7 @@ const createProject = async (req: Request, res: Response) => {
         team_id,
         name,
         description,
-        language_template_id,
+        language_template: language_template_id,
       })
       .select("project_id") // This tells Supabase to return inserted rows
       .single(); // To get single row object, not array
@@ -58,10 +58,7 @@ const createProject = async (req: Request, res: Response) => {
       throw new Error(projectError?.message ?? "Project insert failed");
     }
     if (project) {
-      const containerId = await createContainer(
-        project.project_id!,
-        project.user_id,
-      );
+      const containerId = await createContainer(project.project_id!, user_id);
       if (!containerId) {
         throw new Error("Container creation failed");
       }
@@ -82,4 +79,4 @@ const createProject = async (req: Request, res: Response) => {
   }
 };
 
-export { createProject, executeCmd, getProject, getProjectById };
+export { createProject, executeCmd, getProject };

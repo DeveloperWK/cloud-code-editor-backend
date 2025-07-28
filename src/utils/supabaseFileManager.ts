@@ -160,4 +160,61 @@ const uploadProjectFiles = async (
     );
   }
 };
-export { getProjectHostPath, downloadProjectFiles, uploadProjectFiles };
+const copySupabaseStorageFolder = async (
+  sourceSupabasePath: string,
+  destinationSupabasePath: string,
+): Promise<void> => {
+  console.log(
+    `[SUPA_COPY] Copying from ${sourceSupabasePath} to ${destinationSupabasePath}`,
+  );
+  try {
+    const { data: files, error: listError } = await spbClient.storage
+      .from(BUCKET_NAME)
+      .list(sourceSupabasePath);
+    if (listError) throw listError;
+    if (!files || files.length === 0) {
+      console.warn(
+        `[SUPA_COPY] No files found in source template path: ${sourceSupabasePath}`,
+      );
+      return;
+    }
+    for (const file of files) {
+      if (file.id) {
+        // Ensure it's a file, not a directory entry
+        const sourceFilePath = `${sourceSupabasePath}${file.name}`;
+        const destinationFilePath = `${destinationSupabasePath}${file.name}`;
+
+        // Supabase Storage copy API
+        const { data, error: copyError } = await spbClient.storage
+          .from(BUCKET_NAME)
+          .copy(sourceFilePath, destinationFilePath);
+
+        if (copyError) {
+          console.error(
+            `[SUPA_COPY] Error copying ${sourceFilePath} to ${destinationFilePath}:`,
+            copyError,
+          );
+          // Decide if you want to throw or continue
+        } else {
+          console.log(
+            `[SUPA_COPY] Copied: ${sourceFilePath} to ${destinationFilePath}`,
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      `[SUPA_COPY] Error copying files from ${sourceSupabasePath} to ${destinationSupabasePath}:`,
+      error,
+    );
+    throw new Error(
+      `Failed to copy files from ${sourceSupabasePath} to ${destinationSupabasePath}: ${(error as Error).message}`,
+    );
+  }
+};
+export {
+  getProjectHostPath,
+  downloadProjectFiles,
+  uploadProjectFiles,
+  copySupabaseStorageFolder,
+};

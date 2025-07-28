@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { getProjectById } from "../utils/projectsManager";
+import { getProjectById } from "../utils/databaseManager";
+
 const authorizeProjectAccess = async (
   req: Request,
   res: Response,

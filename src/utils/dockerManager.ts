@@ -1,13 +1,18 @@
 import Docker from "dockerode";
 import runningPlaygroundContainers from "./runningContainer";
-
 import fse from "fs-extra";
+
 import {
+  copySupabaseStorageFolder,
   downloadProjectFiles,
   getProjectHostPath,
   uploadProjectFiles,
 } from "./supabaseFileManager";
-import { updateProjectStatus } from "./projectsManager";
+import {
+  getLanguageTemplateById,
+  getProjectById,
+  updateProjectStatus,
+} from "./databaseManager";
 
 const docker = new Docker();
 
@@ -17,8 +22,15 @@ const createContainer = async (
 ): Promise<string> => {
   const containerName = `playground-${projectId.slice(0, 8)}`;
   const containerPath = "/app/project";
-  const image = "node:18-bullseye";
   const hostPath = getProjectHostPath(projectId);
+
+  const project = await getProjectById(projectId);
+  console.log("userId", userId);
+  if (!project) {
+    throw new Error(`Project ${projectId} not found in database.`);
+  }
+  const image = project.language_template.docker_image;
+  console.log("Image", image);
   try {
     await updateProjectStatus(projectId, "loading");
     const existingContainer = docker.getContainer(containerName);
@@ -56,9 +68,50 @@ const createContainer = async (
         );
       }
     }
-    await downloadProjectFiles(userId, projectId);
 
-    return await tryCreateContainer(projectId, image, containerPath, hostPath);
+    if (!project.initialized_with_template) {
+      console.log(
+        `[Docker] Project ${projectId} not initialized with template. Fetching template...`,
+      );
+
+      const template = project.language_template.id;
+
+      if (!template || !project.language_template.default_files_path) {
+        console.warn(
+          `[Docker] No template or default files path found for template ID: ${project.language_template.id}. Starting with empty project.`,
+        );
+        await fse.ensureDir(hostPath);
+      } else {
+        const sourceTemplatePath = project.language_template.default_files_path;
+        const destinationProjectPath = `${userId}/${projectId}/`;
+        await copySupabaseStorageFolder(
+          sourceTemplatePath,
+          destinationProjectPath,
+        );
+        await updateProjectStatus(projectId, "loading", undefined, true);
+      }
+      await downloadProjectFiles(userId, projectId);
+    } else {
+      console.log(
+        `[Docker] Project ${projectId} already initialized. Downloading latest files.`,
+      );
+      // If already initialized, just download the latest state from user's storage
+      await downloadProjectFiles(userId, projectId);
+    }
+
+    if (!image) {
+      console.error(`No docker image found for project ${projectId}`);
+      return Promise.reject(
+        new Error(`No docker image found for project ${projectId}`),
+      );
+    } else {
+      return await tryCreateContainer(
+        projectId,
+        image,
+        containerPath,
+        hostPath,
+      );
+    }
   } catch (err: any) {
     if (err?.json?.message?.includes("No such image")) {
       console.log(`Image ${image} not found locally. Pulling...`);

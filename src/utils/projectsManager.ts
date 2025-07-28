@@ -1,50 +1,9 @@
 import spbClient from "../config/supabase.config";
-import { projects } from "../types";
+import { getProjectById, updateProjectStatus } from "./databaseManager";
 import { docker } from "./dockerManager";
 import { getProjectHostPath, uploadProjectFiles } from "./supabaseFileManager";
 import * as fse from "fs-extra";
-const getProjectById = async (projectId: string): Promise<projects | null> => {
-  try {
-    const { data: projectDetails, error: projectError } = await spbClient
-      .from("projects")
-      .select("*")
-      .eq("project_id", projectId)
-      .single();
-    if (projectError) {
-      if (projectError.code === "PGRST116") {
-        return null;
-      }
-      console.error("Error fetching project details :", projectError);
-      throw new Error(`Project with id ${projectId} not found`);
-    }
-    console.log(`projectDetails :${JSON.stringify(projectDetails)}`);
-    console.log(
-      `[Docker] Simulating fetching project ${projectDetails?.name} from DB.`,
-    );
 
-    return projectDetails;
-  } catch (error) {
-    console.error("Error fetching project details :", error);
-    throw new Error(`Project with id ${projectId} not found`);
-  }
-};
-async function updateProjectStatus(
-  id: string,
-  status: projects["status"],
-  containerId?: string | null,
-): Promise<void> {
-  console.log(
-    `[Docker] Simulating updating Project ${id} status to ${status}, containerId: ${containerId}`,
-  );
-  const { error } = await spbClient
-    .from("projects")
-    .update({ status, container_id: containerId?.slice(0, 13) })
-    .eq("project_id", id);
-  if (error) {
-    console.error("Error updating project status :", error);
-    throw new Error(`Failed to update project status`);
-  }
-}
 const stopAndSaveProjectContainer = async (
   projectId: string,
   userId: string,
@@ -188,9 +147,4 @@ async function deleteProject(projectId: string, userId: string): Promise<void> {
   }
 }
 
-export {
-  updateProjectStatus,
-  stopAndSaveProjectContainer,
-  getProjectById,
-  deleteProject,
-};
+export { stopAndSaveProjectContainer, deleteProject };
