@@ -1,7 +1,7 @@
 import Docker from "dockerode";
 import runningPlaygroundContainers from "./runningContainer";
 import fse from "fs-extra";
-
+import process from "node:process";
 import {
   copySupabaseStorageFolder,
   downloadProjectFiles,
@@ -29,8 +29,8 @@ const createContainer = async (
   if (!project) {
     throw new Error(`Project ${projectId} not found in database.`);
   }
-  const image = project.language_template.docker_image;
-  console.log("Image", image);
+
+  const image = project.language_template.docker_image.trim();
   try {
     await updateProjectStatus(projectId, "loading");
     const existingContainer = docker.getContainer(containerName);
@@ -168,6 +168,8 @@ const tryCreateContainer = async (
       return container.id;
     }
   } else {
+    const uid = typeof process.getuid === "function" ? process.getuid() : 1000;
+    const gid = typeof process.getgid === "function" ? process.getgid() : 1000;
     const createOptions = {
       Image: image,
       name: `playground-${sliceprojectId}`,
@@ -177,6 +179,7 @@ const tryCreateContainer = async (
       AttachStdout: true,
       AttachStderr: true,
       WorkingDir: containerPath,
+      User: `${uid}:${gid}`,
       HostConfig: {
         Binds: [`${hostPath}:${containerPath}`],
         Memory: 512 * 1024 * 1024, // 512 MB

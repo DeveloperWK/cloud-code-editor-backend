@@ -15,8 +15,8 @@ const router = Router();
 
 router.post("/execute-cmd", executeCmd);
 router.post("/create-project", createProject);
-router.post("/:projectId/open", authorizeProjectAccess, openProject);
-router.post("/:projectId/close", authorizeProjectAccess, closeProject);
+router.post("/open/:projectId", authorizeProjectAccess, openProject);
+router.post("/close/:projectId", authorizeProjectAccess, closeProject);
 
 router.get("/get-project/:projectId", getProject);
 

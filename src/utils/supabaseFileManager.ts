@@ -1,76 +1,68 @@
 import path from "node:path";
 import * as fse from "fs-extra";
 import spbClient from "../config/supabase.config";
-const BUCKET_NAME = "project-files";
+import joinSupabasePath from "./joinSupabasePath";
+import listAllFilesRecursive from "./listAllFilesRecursive";
+const BUCKET_NAME = "cloud-code-editor";
 const PROJECT_HOST_PATH = process.env._DOCKER_HOST_PATH_PREFIX as string;
 
-const getProjectHostPath = (playgroundID: string): string => {
-  const pPath = path.join(PROJECT_HOST_PATH, playgroundID);
+const getProjectHostPath = (projectID: string): string => {
+  const pPath = path.join(PROJECT_HOST_PATH, projectID);
   fse.mkdirSync(PROJECT_HOST_PATH, { recursive: true });
   return pPath;
 };
 const downloadProjectFiles = async (
   userID: string,
-  playgroundID: string,
+  projectID: string,
 ): Promise<void> => {
-  const hostPath = getProjectHostPath(playgroundID);
-  const supabaseStoragePath = `${userID}/${playgroundID}/`;
-  console.log(`[DL] Downloading files for ${playgroundID} to ${hostPath}`);
+  const hostPath = getProjectHostPath(projectID);
+  const supabaseStoragePath = `${userID}/${projectID}`;
+  console.log(`[DL] Downloading files for ${projectID} to ${hostPath}`);
   await fse.emptyDir(hostPath);
 
   try {
-    const { data: files, error } = await spbClient.storage
-      .from(BUCKET_NAME)
-      .list(supabaseStoragePath);
-    if (error) throw new Error(error?.message);
-    if (!files || files.length === 0) {
-      console.log(
-        `[DL] No files found in Supabase Storage for ${playgroundID}.`,
-      );
+    const allFilePaths = await listAllFilesRecursive(supabaseStoragePath);
+    if (!allFilePaths || allFilePaths.length === 0) {
+      console.log(`[DL] No files found in Supabase Storage for ${projectID}.`);
       return;
     }
-    for (const file of files) {
-      if (file.id) {
-        const downloadPath = `${supabaseStoragePath}${file.name}`;
-        const destFilePath = path.join(hostPath, file.name);
-        await fse.ensureDir(path.dirname(destFilePath));
-        const { data, error: downloadError } = await spbClient.storage
-          .from(BUCKET_NAME)
-          .download(downloadPath);
-        if (downloadError) {
-          console.error(
-            `[DL] Error downloading ${downloadPath}:`,
-            downloadError,
-          );
-          continue; // Continue to next file
-        }
-        if (data) {
-          await fse.writeFile(
-            destFilePath,
-            Buffer.from(await data.arrayBuffer()),
-          );
-          console.log(`[DL] Downloaded: ${downloadPath} to ${destFilePath}`);
-        }
+    for (const filePath of allFilePaths) {
+      const relativePath = filePath.replace(`${supabaseStoragePath}/`, "");
+      const destFilePath = path.join(hostPath, relativePath);
+      await fse.ensureDir(path.dirname(destFilePath));
+      const { data, error: downloadError } = await spbClient.storage
+        .from(BUCKET_NAME)
+        .download(filePath);
+      if (downloadError) {
+        console.error(`[DL] Error downloading ${filePath}:`, downloadError);
+        continue; // Continue to next file
+      }
+      if (data) {
+        await fse.writeFile(
+          destFilePath,
+          Buffer.from(await data.arrayBuffer()),
+        );
+        console.log(`[DL] Downloaded: ${filePath} to ${destFilePath}`);
       }
     }
-    console.log(`[DL] Successfully downloaded all files for ${playgroundID}.`);
+    console.log(`[DL] Successfully downloaded all files for ${projectID}.`);
   } catch (err) {
     console.error(
-      `[DL] Failed to download files for playground ${playgroundID}:`,
+      `[DL] Failed to download files for project ${projectID}:`,
       err,
     );
     throw new Error(
-      `Failed to download files for playground ${playgroundID}: ${(err as Error).message}`,
+      `Failed to download files for project ${projectID}: ${(err as Error).message}`,
     );
   }
 };
 const uploadProjectFiles = async (
   userID: string,
-  playgroundID: string,
+  projectID: string,
 ): Promise<void> => {
-  const hostPath = getProjectHostPath(playgroundID);
-  const supabaseStorageBasePath = `${userID}/${playgroundID}/`;
-  console.log(`[UL] Uploading files for ${playgroundID} from ${hostPath}`);
+  const hostPath = getProjectHostPath(projectID);
+  const supabaseStorageBasePath = `${userID}/${projectID}`;
+  console.log(`[UL] Uploading files for ${projectID} from ${hostPath}`);
   if (!(await fse.pathExists(hostPath))) {
     console.warn(`[UL] Host path ${hostPath} does not exist. Skipping upload.`);
     return;
@@ -82,7 +74,7 @@ const uploadProjectFiles = async (
     if (listError) {
       console.error(`[UL] Error listing files: ${listError}`);
       throw new Error(
-        `Failed to list files for playground ${playgroundID}: ${listError?.message}`,
+        `Failed to list files for project ${projectID}: ${listError?.message}`,
       );
     }
     const filesToDelete = existingFiles
@@ -98,7 +90,7 @@ const uploadProjectFiles = async (
       if (deleteError) {
         console.error(`[UL] Error deleting files: ${deleteError}`);
         throw new Error(
-          `Failed to delete files for playground ${playgroundID}: ${deleteError?.message}`,
+          `Failed to delete files for project ${projectID}: ${deleteError?.message}`,
         );
       }
     }
@@ -131,7 +123,10 @@ const uploadProjectFiles = async (
       const fileContent = await fse.readFile(file.fullPath, {
         encoding: "utf8",
       });
-      const supabaseFilePath = `${supabaseStorageBasePath}${file.relativePath}`;
+      const supabaseFilePath = path.posix.join(
+        supabaseStorageBasePath,
+        file.relativePath,
+      );
       const { error: uploadError } = await spbClient.storage
         .from(BUCKET_NAME)
         .upload(supabaseFilePath, fileContent, {
@@ -148,18 +143,19 @@ const uploadProjectFiles = async (
       } else {
         console.log(`[UL] Uploaded: ${supabaseFilePath}`);
       }
-      console.log(`[UL] Successfully uploaded all files for ${playgroundID}.`);
+      console.log(`[UL] Successfully uploaded all files for ${projectID}.`);
     }
   } catch (e) {
     console.error(
-      `[UL] Failed to upload files for playground ${playgroundID}:`,
+      `[UL] Failed to upload files for playground ${projectID}:`,
       e,
     );
     throw new Error(
-      `Failed to upload files for playground ${playgroundID}: ${(e as Error).message}`,
+      `Failed to upload files for playground ${projectID}: ${(e as Error).message}`,
     );
   }
 };
+
 const copySupabaseStorageFolder = async (
   sourceSupabasePath: string,
   destinationSupabasePath: string,
@@ -168,39 +164,29 @@ const copySupabaseStorageFolder = async (
     `[SUPA_COPY] Copying from ${sourceSupabasePath} to ${destinationSupabasePath}`,
   );
   try {
-    const { data: files, error: listError } = await spbClient.storage
-      .from(BUCKET_NAME)
-      .list(sourceSupabasePath);
-    if (listError) throw listError;
+    const files = await listAllFilesRecursive(sourceSupabasePath);
+
     if (!files || files.length === 0) {
       console.warn(
         `[SUPA_COPY] No files found in source template path: ${sourceSupabasePath}`,
       );
       return;
     }
-    for (const file of files) {
-      if (file.id) {
-        // Ensure it's a file, not a directory entry
-        const sourceFilePath = `${sourceSupabasePath}${file.name}`;
-        const destinationFilePath = `${destinationSupabasePath}${file.name}`;
-
-        // Supabase Storage copy API
-        const { data, error: copyError } = await spbClient.storage
-          .from(BUCKET_NAME)
-          .copy(sourceFilePath, destinationFilePath);
-
-        if (copyError) {
-          console.error(
-            `[SUPA_COPY] Error copying ${sourceFilePath} to ${destinationFilePath}:`,
-            copyError,
-          );
-          // Decide if you want to throw or continue
-        } else {
-          console.log(
-            `[SUPA_COPY] Copied: ${sourceFilePath} to ${destinationFilePath}`,
-          );
-        }
+    for (const filePath of files) {
+      const relativePath = filePath.replace(`${sourceSupabasePath}/`, "");
+      const destPath = path.posix.join(destinationSupabasePath, relativePath);
+      const { error } = await spbClient.storage
+        .from(BUCKET_NAME)
+        .copy(filePath, destPath);
+      if (error) {
+        console.error(
+          `[SUPA_COPY] Error copying ${filePath} to ${destPath}`,
+          error,
+        );
+      } else {
+        console.log(`[SUPA_COPY] Copied: ${filePath} → ${destPath}`);
       }
+      // Supabase Storage copy API
     }
   } catch (error) {
     console.error(
@@ -212,6 +198,7 @@ const copySupabaseStorageFolder = async (
     );
   }
 };
+
 export {
   getProjectHostPath,
   downloadProjectFiles,

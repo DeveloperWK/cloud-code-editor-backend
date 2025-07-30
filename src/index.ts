@@ -49,7 +49,9 @@ app.use("/api/v1/projects", checkAuthToken, verifyAccessToken, ProjectsRoutes);
 app.get("/api/v1/hello-test", async (req: Request, res: Response) => {
   // Use the JS library to create a bucket.
 
-  const { data, error } = await spbClient.storage.listBuckets();
+  const { data, error } = await spbClient.storage
+    .from("cloud-code-editor")
+    .list("node/src");
   console.log(data);
   console.log(error);
   res.send("Hello World!");

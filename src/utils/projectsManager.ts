@@ -3,7 +3,7 @@ import { getProjectById, updateProjectStatus } from "./databaseManager";
 import { docker } from "./dockerManager";
 import { getProjectHostPath, uploadProjectFiles } from "./supabaseFileManager";
 import * as fse from "fs-extra";
-
+const BUCKET_NAME = "cloud-code-editor";
 const stopAndSaveProjectContainer = async (
   projectId: string,
   userId: string,
@@ -52,7 +52,7 @@ const stopAndSaveProjectContainer = async (
     const hostPath = getProjectHostPath(projectId);
     if (await fse.pathExists(hostPath)) {
       console.log(`Cleaning up host directory ${hostPath}.`);
-      await fse.remove(hostPath);
+      await fse.rm(hostPath, { recursive: true, force: true });
     }
     await updateProjectStatus(projectId, "stopped", null);
     console.log(`Project ${projectId} stopped and files saved.`);
@@ -91,9 +91,9 @@ async function deleteProject(projectId: string, userId: string): Promise<void> {
     }
 
     // Delete files from Supabase Storage
-    const supabaseStorageBasePath = `${userId}/${projectId}/`;
+    const supabaseStorageBasePath = `${userId}/${projectId}`;
     const { data: existingFiles, error: listError } = await spbClient.storage
-      .from("project-files") // Assuming your bucket name
+      .from(BUCKET_NAME) // Assuming your bucket name
       .list(supabaseStorageBasePath); // List recursively
 
     if (listError)
