@@ -44,6 +44,7 @@ const deleteProjectById = async (
 ): Promise<void> => {
   const projectId = req.project.project_id;
   const userId = req.user?.id;
+  console.log(`Deleting project ${projectId}`, userId);
   try {
     await deleteProject(projectId, userId!);
     res

@@ -1,6 +1,8 @@
+import e from "express";
 import spbClient from "../config/supabase.config";
 import { getProjectById, updateProjectStatus } from "./databaseManager";
 import { docker } from "./dockerManager";
+import listAllFilesRecursive from "./listAllFilesRecursive";
 import { getProjectHostPath, uploadProjectFiles } from "./supabaseFileManager";
 import * as fse from "fs-extra";
 const BUCKET_NAME = "cloud-code-editor";
@@ -91,29 +93,23 @@ async function deleteProject(projectId: string, userId: string): Promise<void> {
     }
 
     // Delete files from Supabase Storage
-    const supabaseStorageBasePath = `${userId}/${projectId}`;
-    const { data: existingFiles, error: listError } = await spbClient.storage
-      .from(BUCKET_NAME) // Assuming your bucket name
-      .list(supabaseStorageBasePath); // List recursively
-
-    if (listError)
-      console.error(`[Supabase] Error listing files for delete:`, listError);
-
-    const filesToDelete = existingFiles
-      ?.filter((file) => file.id)
-      .map((file) => `${supabaseStorageBasePath}${file.name}`);
-    if (filesToDelete && filesToDelete.length > 0) {
-      console.log(
-        `[Supabase] Deleting ${filesToDelete.length} files from Supabase Storage for ${projectId}.`,
-      );
-      const { error: deleteError } = await spbClient.storage
-        .from("project-files")
-        .remove(filesToDelete);
-      if (deleteError)
+    const allFilePaths = await listAllFilesRecursive(`${userId}/${projectId}`);
+    if (allFilePaths.length > 0) {
+      const { error } = await spbClient.storage
+        .from(BUCKET_NAME)
+        .remove(allFilePaths);
+      if (error) {
         console.error(
           `[Supabase] Error deleting files from Supabase Storage:`,
-          deleteError,
+          error,
         );
+      } else {
+        console.log(
+          `[Supabase] Files deleted from Supabase Storage for ${projectId}.`,
+        );
+      }
+    } else {
+      console.log(`[Supabase] No files found in ${userId}/${projectId}`);
     }
 
     // Clean up host directory
