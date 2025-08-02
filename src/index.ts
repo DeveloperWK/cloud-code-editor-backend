@@ -13,13 +13,27 @@ import notFound from "./middleware/notFound";
 import errorHandler from "./middleware/Error";
 import verifyAccessToken from "./middleware/verifyAccessToken";
 import spbClient from "./config/supabase.config";
+import PerformanceMonitor from "./monitor/performance-monitor";
+import PerformanceMiddleware from "./middleware/performance.middleware";
 
 configDotenv();
 
 const app = express();
 const server = createServer(app);
 const CLIENT_ORIGIN = process.env._CLIENT_ORIGIN || "http://localhost:3000";
-
+const performanceMonitor = new PerformanceMonitor({
+  enableLogging: true,
+  logToFile: true,
+  logFilePath: "./logs/performance.log",
+  alertThresholds: {
+    responseTime: 500,
+    memoryUsage: 85,
+    errorRate: 3,
+  },
+});
+const performanceMonitorMiddleware = new PerformanceMiddleware(
+  performanceMonitor,
+);
 const io = new IOServer(server, {
   cors: {
     origin: CLIENT_ORIGIN,
@@ -50,19 +64,10 @@ app.use(cookieParser());
 
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/projects", checkAuthToken, verifyAccessToken, ProjectsRoutes);
-
-app.get("/api/v1/hello-test", async (req: Request, res: Response) => {
-  // Use the JS library to create a bucket.
-
-  const { data, error } = await spbClient.storage
-    .from("cloud-code-editor")
-    .list("node/src");
-  console.log(data);
-  console.log(error);
-  res.send("Hello World!");
-});
+app.get("/health", performanceMonitorMiddleware.healthHandler());
+app.get("/performance", performanceMonitorMiddleware.performanceHandler());
 
 app.use(notFound);
 app.use(errorHandler);
 
-export { io, server };
+export { io, server, performanceMonitor };

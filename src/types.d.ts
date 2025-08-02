@@ -61,6 +61,59 @@ declare global {
     }
   }
 }
+interface PerformanceMetric {
+  operation: string;
+  duration: number;
+  timestamp: string;
+  metadata: Record<string, any>;
+}
+interface MemoryUsage {
+  rss: string;
+  heapTotal: string;
+  heapUsed: string;
+  external: string;
+  arrayBuffers: string;
+}
+interface CpuUsage {
+  user: number;
+  system: number;
+}
+interface PerformanceSummary {
+  totalOperations: number;
+  averageDuration: number;
+  recentOperations: PerformanceMetric[];
+}
+interface Alert {
+  type: "SLOW_OPERATION" | "HIGH_MEMORY" | "HIGH_ERROR_RATE" | "CUSTOM";
+  operation?: string;
+  duration?: number;
+  threshold?: number;
+  usage?: number;
+  message?: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+interface MonitorConfig {
+  enableLogging?: boolean;
+  logToFile?: boolean;
+  logFilePath?: string;
+  alertThresholds?: {
+    responseTime?: number;
+    memoryUsage?: number;
+    errorRate?: number;
+  };
+  cleanupInterval?: number;
+  maxMetricsAge?: number;
+}
+
+interface Stats {
+  operation: string;
+  count: number;
+  avgDuration: number;
+  minDuration: number;
+  maxDuration: number;
+  last10: number[];
+}
 
 export {
   projects,
@@ -68,4 +121,11 @@ export {
   refreshToken,
   languageTemplate,
   runWorkerOptions,
+  PerformanceMetric,
+  MemoryUsage,
+  CpuUsage,
+  PerformanceSummary,
+  Alert,
+  MonitorConfig,
+  Stats,
 };
