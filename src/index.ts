@@ -26,6 +26,11 @@ const io = new IOServer(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+  pingInterval: 25000,
+  pingTimeout: 5000,
+  maxHttpBufferSize: 1e6,
+  transports: ["websocket"],
+  allowEIO3: false,
   path: "/socket.io",
 });
 

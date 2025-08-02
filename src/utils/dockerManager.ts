@@ -1,7 +1,5 @@
 import Docker from "dockerode";
-import runningPlaygroundContainers from "./runningContainer";
 import fse from "fs-extra";
-import process from "node:process";
 import {
   copySupabaseStorageFolder,
   downloadProjectFiles,
@@ -13,6 +11,10 @@ import {
   getProjectById,
   updateProjectStatus,
 } from "./databaseManager";
+import tryCreateContainer from "./createContainerManager";
+import runWorker from "./workers/createWorkers";
+import path from "node:path";
+import { configDotenv } from "dotenv";
 
 const docker = new Docker();
 
@@ -38,21 +40,47 @@ const createContainer = async (
       const info = await existingContainer.inspect();
       if (info) {
         console.warn(
-          `[Docker] Found existing container ${containerName} (ID: ${info.Id}). Forcing removal before creating new one.`,
+          `[Docker] Found existing container ${existingContainer.id} (ID: ${info.Id}). Forcing removal before creating new one.`,
         );
         if (info.State.Running) {
-          await existingContainer.stop();
+          try {
+            await runWorker(
+              path.join(
+                __dirname,
+                "workers",
+                `stopContainerWorker${process.env.NODE_ENV === "production" ? ".js" : ".ts"}`,
+              ),
+              {
+                containerId: existingContainer.id,
+              },
+            );
+          } catch (e: any) {
+            console.error(`Error stopping container ${containerName}:`, e);
+          }
         }
-        await existingContainer.remove();
+        try {
+          await runWorker(
+            path.join(
+              __dirname,
+              "workers",
+              `removeContainerWorker${process.env.NODE_ENV === "production" ? ".js" : ".ts"}`,
+            ),
+            {
+              containerId: existingContainer.id,
+            },
+          );
+        } catch (e: any) {
+          console.error(`Error removing container ${existingContainer.id}:`, e);
+        }
         console.warn(
-          `[Docker] Successfully removed old container ${containerName}.`,
+          `[Docker] Successfully removed old container ${existingContainer.id}.`,
         );
       }
     } catch (e: any) {
       if (e.statusCode === 404) {
         // Container not found, which is ideal!
         console.log(
-          `[Docker] No old container ${containerName} found. Proceeding to create new.`,
+          `[Docker] No old container ${existingContainer.id} found. Proceeding to create new.`,
         );
       } else {
         // Some other error inspecting or removing the old container
@@ -133,96 +161,22 @@ const createContainer = async (
   }
 };
 
-const tryCreateContainer = async (
-  projectId: string,
-  image: string,
-  containerPath: string,
-  hostPath: string,
-) => {
-  const sliceprojectId = projectId.slice(0, 8);
-  let container = docker.getContainer(`playground-${sliceprojectId}`);
-  let containerExists = false;
+const pullImage = async (image: string): Promise<void> => {
   try {
-    await container.inspect();
-    containerExists = true;
-  } catch (error: any) {
-    if (error.statusCode === 404) {
-      containerExists = false;
-    } else {
-      console.error(error);
-    }
-  }
-  if (containerExists) {
-    console.log(
-      `Container playground-${projectId} already exists. Attempting to start.`,
-    );
-    const info = await container.inspect();
-    if (info.State.Running) {
-      console.log(`Container playground-${projectId} is already running.`);
-      await updateProjectStatus(projectId, "running", container.id);
-      return container.id;
-    } else {
-      await container.start();
-      console.log(`Started existing container playground-${projectId}.`);
-      await updateProjectStatus(projectId, "running", container.id);
-      return container.id;
-    }
-  } else {
-    const uid = typeof process.getuid === "function" ? process.getuid() : 1000;
-    const gid = typeof process.getgid === "function" ? process.getgid() : 1000;
-    const createOptions = {
-      Image: image,
-      name: `playground-${sliceprojectId}`,
-      Tty: true,
-      OpenStdin: true,
-      AttachStdin: true,
-      AttachStdout: true,
-      AttachStderr: true,
-      WorkingDir: containerPath,
-      User: `${uid}:${gid}`,
-      HostConfig: {
-        Binds: [`${hostPath}:${containerPath}`],
-        Memory: 512 * 1024 * 1024, // 512 MB
-        CpuPeriod: 100000,
-        CpuQuota: 25000, // 25% CPU
-      },
-      Cmd: ["tail", "-f", "/dev/null"], // Keep container running
-    };
-    container = await docker.createContainer(createOptions);
-    await container.start();
-    console.log(
-      `Created and started container for playground ${projectId}: ${container.id}`,
-    );
-    await updateProjectStatus(projectId, "running", container.id);
-    runningPlaygroundContainers.add({
-      name: projectId,
-      containerID: container.id.slice(0, 13),
-    });
-    return container.id.slice(0, 13);
-  }
-};
-
-const pullImage = (image: string): Promise<void> => {
-  return new Promise<void>((resolve, reject) => {
-    docker.pull(
-      image,
-      (err: NodeJS.ErrnoException | null, stream: NodeJS.ReadableStream) => {
-        if (err) return reject(err);
-        docker.modem.followProgress(stream, onFinished, onProgress);
-
-        function onFinished(err: any) {
-          if (err) return reject(err);
-          console.log(`Successfully pulled image: ${image}`);
-          resolve();
-        }
-
-        function onProgress(event: any) {
-          // Optionally log progress
-          console.log(event);
-        }
+    await runWorker(
+      path.join(
+        __dirname,
+        "workers",
+        `pullImageWorker${process.env.NODE_ENV === "production" ? ".js" : ".ts"}`,
+      ),
+      {
+        image,
       },
     );
-  });
+  } catch (error) {
+    console.error("Error in container worker:", (error as Error).message);
+    throw error;
+  }
 };
 
 export { createContainer, docker };

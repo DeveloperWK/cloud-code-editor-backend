@@ -1,3 +1,4 @@
+import { WorkerOptions } from "worker_threads";
 interface projects {
   project_id: string;
   user_id: string;
@@ -43,7 +44,10 @@ interface languageTemplate {
   created_at: string;
   icon: string | null;
 }
-
+interface runWorkerOptions {
+  timeout?: number;
+  workerOptions?: WorkerOptions;
+}
 declare global {
   namespace Express {
     interface Request {
@@ -58,4 +62,10 @@ declare global {
   }
 }
 
-export { projects, projectsRow, refreshToken, languageTemplate };
+export {
+  projects,
+  projectsRow,
+  refreshToken,
+  languageTemplate,
+  runWorkerOptions,
+};

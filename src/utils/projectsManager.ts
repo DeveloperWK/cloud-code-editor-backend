@@ -1,11 +1,14 @@
-import e from "express";
 import spbClient from "../config/supabase.config";
 import { getProjectById, updateProjectStatus } from "./databaseManager";
 import { docker } from "./dockerManager";
 import listAllFilesRecursive from "./listAllFilesRecursive";
 import { getProjectHostPath, uploadProjectFiles } from "./supabaseFileManager";
 import * as fse from "fs-extra";
+import runWorker from "./workers/createWorkers";
+import path from "node:path";
+import { configDotenv } from "dotenv";
 const BUCKET_NAME = "cloud-code-editor";
+
 const stopAndSaveProjectContainer = async (
   projectId: string,
   userId: string,
@@ -20,36 +23,34 @@ const stopAndSaveProjectContainer = async (
       await updateProjectStatus(projectId, "stopped", null);
       return;
     }
-    const container = docker.getContainer(project.container_id);
     try {
-      const info = await container.inspect();
-      if (info.State.Running) {
-        console.log(`Stopping container ${project.container_id}...`);
-        await container.stop();
-      }
+      await runWorker(
+        path.join(
+          __dirname,
+          "workers",
+          `stopContainerWorker${process.env.NODE_ENV === "production" ? ".js" : ".ts"}`,
+        ),
+        {
+          containerId: project.container_id,
+        },
+      );
     } catch (e: any) {
-      if (e.statusCode === 404) {
-        console.log(
-          `Container ${project.container_id} not found, already removed.`,
-        );
-      } else {
-        console.error(
-          `Error inspecting/stopping container ${project.container_id}:`,
-          e,
-        );
-        // Decide if you want to proceed with file upload despite stop error
-      }
+      console.error(`Error stopping container ${project.container_id}:`, e);
     }
     await uploadProjectFiles(userId, projectId);
     try {
-      console.log(`Removing container ${project.container_id}...`);
-      await container.remove();
+      await runWorker(
+        path.join(
+          __dirname,
+          "workers",
+          `removeContainerWorker${process.env.NODE_ENV === "production" ? ".js" : ".ts"}`,
+        ),
+        {
+          containerId: project.container_id,
+        },
+      );
     } catch (e: any) {
-      if (e.statusCode === 404) {
-        console.log(`Container ${project.container_id} already removed.`);
-      } else {
-        console.error(`Error removing container ${project.container_id}:`, e);
-      }
+      console.error(`Error removing container ${project.container_id}:`, e);
     }
     const hostPath = getProjectHostPath(projectId);
     if (await fse.pathExists(hostPath)) {

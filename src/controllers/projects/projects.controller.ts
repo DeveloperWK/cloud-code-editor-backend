@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import spbClient from "../../config/supabase.config";
-import { projectsRow } from "../../types";
+import type { projectsRow } from "../../types";
 import { createContainer } from "../../utils/dockerManager";
 import ptyExecuteCmd from "../../utils/nodePty";
 import { getProjectById } from "../../utils/databaseManager";

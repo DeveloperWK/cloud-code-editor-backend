@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { configDotenv } from "dotenv";
 configDotenv();
+
 const SUPABASE_URL = (process.env._SUPABASE_URL as string) || "";
 const SUPABASE_SERVICE_ROLE_KEY =
   (process.env._SUPABASE_SERVICE_ROLE_KEY! as string) || "";

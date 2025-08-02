@@ -3,7 +3,7 @@ import { configDotenv } from "dotenv";
 import { Request, Response } from "express";
 import spbClient from "../../config/supabase.config";
 import { issueTokensAndSetCookies } from "../../utils/issueTokensAndSetCookies";
-configDotenv();
+
 const GOOGLE_CLIENT_ID = process.env._GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = process.env._GOOGLE_CLIENT_SECRET!;
 const GOOGLE_REDIRECT_URI = `${process.env._SERVER_URI as string}api/v1/auth/oauth/google/callback`;

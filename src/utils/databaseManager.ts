@@ -1,5 +1,5 @@
 import spbClient from "../config/supabase.config";
-import { languageTemplate, projects } from "../types";
+import type { languageTemplate, projects } from "../types";
 
 const getProjectById = async (projectId: string): Promise<projects | null> => {
   try {
