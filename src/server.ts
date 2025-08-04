@@ -4,6 +4,9 @@ import { io, performanceMonitor, server } from "./index";
 import cluster from "node:cluster";
 import os from "node:os";
 import { cleanupAllPlaygroundContainers } from "./utils/CleanContainer";
+import handleInit from "./fileSystemManagement/init";
+import handleFileCreate from "./fileSystemManagement/file";
+import socketConnection from "./socketConnection";
 
 configDotenv();
 
@@ -77,17 +80,7 @@ if (cluster.isPrimary) {
     console.log(`Worker ${worker.process.pid} started`);
   });
 } else {
-  io.on("connection", (socket: Socket) => {
-    console.log("Client connected:", socket.id);
-    socket.on("send-message", (message) => {
-      console.log("Message from client:", message);
-      socket.broadcast.emit("receive-message", message);
-    });
-    socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
-    });
-  });
-
+  socketConnection();
   server.listen(PORT, () => {
     if (process.env.NODE_ENV === "production") {
       startMonitoring();
