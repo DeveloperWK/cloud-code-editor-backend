@@ -114,6 +114,12 @@ interface Stats {
   maxDuration: number;
   last10: number[];
 }
+interface LinePatch {
+  action: "replace" | "append";
+  startLine: number;
+  endLine?: number;
+  lines: string[];
+}
 
 export {
   projects,
@@ -128,4 +134,5 @@ export {
   Alert,
   MonitorConfig,
   Stats,
+  LinePatch,
 };

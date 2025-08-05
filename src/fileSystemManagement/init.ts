@@ -1,10 +1,11 @@
 import { Socket } from "socket.io";
-import handleFileCreate from "./file";
-import handleDirCreate from "./dir";
+import handleFileCreate from "./create";
+import { handleRemoveDir, handleRenameDir, handleDirCreate } from "./folder";
 import FileOperations from "../classes/fileOperations";
 import lineHandler from "./line";
 import readFileHandler from "./read";
 import writeFileHandler from "./write";
+import handleListFilesOrFolders from "./list";
 export const fileOperations = new FileOperations();
 const handleInit = async (socket: Socket) => {
   socket.on("init", async (data) => {
@@ -34,10 +35,15 @@ const handleInit = async (socket: Socket) => {
     socket.join(`project:${projectId}`);
 
     await handleFileCreate(socket);
-    await handleDirCreate(socket);
     await lineHandler(socket);
     await readFileHandler(socket);
     await writeFileHandler(socket);
+
+    await handleListFilesOrFolders(socket);
+
+    await handleDirCreate(socket);
+    await handleRenameDir(socket);
+    await handleRemoveDir(socket);
 
     socket.emit("init:ack");
   });
