@@ -1,6 +1,6 @@
 import { getProjectHostPath } from "./supabaseFileManager";
 import path from "node:path";
-const cleanedPath = (projectId: string, getPath?: string | undefined) => {
+const getAbsolutePath = (projectId: string, getPath?: string | undefined) => {
   const hostPath = getProjectHostPath(projectId);
   const cleanedPath = path.join(
     hostPath,
@@ -8,4 +8,4 @@ const cleanedPath = (projectId: string, getPath?: string | undefined) => {
   );
   return cleanedPath;
 };
-export default cleanedPath;
+export default getAbsolutePath;

@@ -2,6 +2,9 @@ import { Socket } from "socket.io";
 import handleFileCreate from "./file";
 import handleDirCreate from "./dir";
 import FileOperations from "../classes/fileOperations";
+import lineHandler from "./line";
+import readFileHandler from "./read";
+import writeFileHandler from "./write";
 export const fileOperations = new FileOperations();
 const handleInit = async (socket: Socket) => {
   socket.on("init", async (data) => {
@@ -29,8 +32,13 @@ const handleInit = async (socket: Socket) => {
     socket.data.projectId = projectId;
     socket.data.containerId = containerId;
     socket.join(`project:${projectId}`);
+
     await handleFileCreate(socket);
     await handleDirCreate(socket);
+    await lineHandler(socket);
+    await readFileHandler(socket);
+    await writeFileHandler(socket);
+
     socket.emit("init:ack");
   });
 };
