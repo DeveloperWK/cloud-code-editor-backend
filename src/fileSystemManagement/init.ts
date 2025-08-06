@@ -6,6 +6,8 @@ import lineHandler from "./line";
 import readFileHandler from "./read";
 import writeFileHandler from "./write";
 import handleListFilesOrFolders from "./list";
+import handleRemoveFile from "./delete";
+import handleRenameFile from "./rename";
 export const fileOperations = new FileOperations();
 const handleInit = async (socket: Socket) => {
   socket.on("init", async (data) => {
@@ -38,6 +40,8 @@ const handleInit = async (socket: Socket) => {
     await lineHandler(socket);
     await readFileHandler(socket);
     await writeFileHandler(socket);
+    await handleRemoveFile(socket);
+    await handleRenameFile(socket);
 
     await handleListFilesOrFolders(socket);
 

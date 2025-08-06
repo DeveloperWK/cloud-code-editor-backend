@@ -1,11 +1,9 @@
 import { configDotenv } from "dotenv";
 import { Socket } from "socket.io";
-import { io, performanceMonitor, server } from "./index";
+import { performanceMonitor, server } from "./index";
 import cluster from "node:cluster";
 import os from "node:os";
 import { cleanupAllPlaygroundContainers } from "./utils/CleanContainer";
-import handleInit from "./fileSystemManagement/init";
-import handleFileCreate from "./fileSystemManagement/file";
 import socketConnection from "./socketConnection";
 
 configDotenv();
