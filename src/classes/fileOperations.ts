@@ -1,8 +1,7 @@
-import path from "node:path";
 import fse from "fs-extra";
-import { getProjectHostPath } from "../utils/supabaseFileManager";
-import getAbsolutePath from "../utils/cleanedPath";
+import path from "node:path";
 import { LinePatch } from "../types";
+import getAbsolutePath from "../utils/cleanedPath";
 class FileOperations {
   public async createFile(
     fileName: string,
@@ -112,7 +111,18 @@ class FileOperations {
   public async writeFile(filePath: string, content: string, projectId: string) {
     try {
       const absPath = getAbsolutePath(projectId, filePath);
-      await fse.ensureFile(path.dirname(absPath));
+      console.log(`Writing file to ${absPath}`);
+      if (
+        (await fse.pathExists(absPath)) &&
+        (await fse.stat(absPath)).isDirectory()
+      ) {
+        throw new Error(`Target path "${absPath}" is a directory, not a file`);
+      }
+
+      const fileExists = await this.isFileExists(absPath);
+      console.log("File already exists?", fileExists);
+
+      await fse.ensureDir(path.dirname(absPath));
       if (content.length > 1024 * 1024) {
         return this.writeLargeFile(absPath, content);
       } else {
@@ -162,6 +172,17 @@ class FileOperations {
       return stats.size;
     } catch (error) {
       return 0;
+    }
+  }
+  private async isFileExists(absPath: string) {
+    try {
+      const stats = await fse.stat(absPath);
+      if (stats.isFile()) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
     }
   }
   public async renameFile(oldPath: string, newPath: string, projectId: string) {

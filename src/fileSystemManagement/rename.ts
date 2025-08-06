@@ -2,7 +2,7 @@ import { Socket } from "socket.io";
 import { fileOperations } from "./init";
 
 const handleRenameFile = async (socket: Socket) => {
-  socket.on("file:rename", async (oldPath, newPath) => {
+  socket.on("file:rename", async ({ oldPath, newPath }) => {
     try {
       const { projectId } = socket.data;
       await fileOperations.renameFile(oldPath, newPath, projectId);

@@ -1,13 +1,13 @@
 import { Socket } from "socket.io";
-import handleFileCreate from "./create";
-import { handleRemoveDir, handleRenameDir, handleDirCreate } from "./folder";
 import FileOperations from "../classes/fileOperations";
-import lineHandler from "./line";
-import readFileHandler from "./read";
-import writeFileHandler from "./write";
-import handleListFilesOrFolders from "./list";
+import handleFileCreate from "./create";
 import handleRemoveFile from "./delete";
+import { handleDirCreate, handleRemoveDir, handleRenameDir } from "./folder";
+import lineHandler from "./line";
+import handleListFilesOrFolders from "./list";
+import readFileHandler from "./read";
 import handleRenameFile from "./rename";
+import writeFileHandler from "./write";
 export const fileOperations = new FileOperations();
 const handleInit = async (socket: Socket) => {
   socket.on("init", async (data) => {

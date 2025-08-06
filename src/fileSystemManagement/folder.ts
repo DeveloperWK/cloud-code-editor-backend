@@ -16,7 +16,7 @@ const handleDirCreate = async (socket: Socket) => {
   });
 };
 const handleRenameDir = async (socket: Socket) => {
-  socket.on("folder:rename", async (oldPath, newPath) => {
+  socket.on("folder:rename", async ({ oldPath, newPath }) => {
     try {
       const { projectId } = socket.data;
       await fileOperations.renameFolder(oldPath, newPath, projectId);
@@ -37,4 +37,4 @@ const handleRemoveDir = async (socket: Socket) => {
     }
   });
 };
-export { handleDirCreate, handleRenameDir, handleRemoveDir };
+export { handleDirCreate, handleRemoveDir, handleRenameDir };

@@ -1,6 +1,6 @@
 import { Socket } from "socket.io";
-import { io } from "./index";
 import handleInit from "./fileSystemManagement/init";
+import { io } from "./index";
 
 const socketConnection = () => {
   io.on("connection", (socket: Socket) => {
