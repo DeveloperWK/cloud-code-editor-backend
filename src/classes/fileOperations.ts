@@ -1,6 +1,6 @@
 import fse from "fs-extra";
 import path from "node:path";
-import { LinePatch } from "../types";
+import { FileNode, LinePatch } from "../types";
 import getAbsolutePath from "../utils/cleanedPath";
 class FileOperations {
   public async createFile(
@@ -212,11 +212,11 @@ class FileOperations {
     }
   }
 
-  public async listFileOrFolder(projectId: string, path: string) {
+  public async FileExplorer(projectId: string, path: string) {
     try {
       const absPath = getAbsolutePath(projectId, path);
-      const filesOrFolders = await fse.readdir(absPath);
-      return filesOrFolders;
+      const children = await this.buildFileTree(absPath);
+      return children;
     } catch (error) {
       console.error(`Error listing files or folders: ${error}`);
       return [];
@@ -273,6 +273,24 @@ class FileOperations {
     const updatedContent = lines.join("\n");
     await fse.writeFile(filePath, updatedContent, { encoding: "utf8" });
     return updatedContent;
+  }
+
+  private async buildFileTree(dirPath: string): Promise<FileNode[]> {
+    const items = await fse.readdir(dirPath, { withFileTypes: true });
+    const result: FileNode[] = await Promise.all(
+      items
+        .filter((item) => !item.name.startsWith("."))
+        .map(async (item) => {
+          const fullPath = path.join(dirPath, item.name);
+          return {
+            id: item.name,
+            name: item.name,
+            type: item.isDirectory() ? "folder" : "file",
+            expanded: false,
+          } as FileNode;
+        }),
+    );
+    return result;
   }
 }
 export default FileOperations;

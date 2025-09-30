@@ -120,19 +120,27 @@ interface LinePatch {
   endLine?: number;
   lines: string[];
 }
+interface FileNode {
+  id: string;
+  name: string;
+  type: "folder" | "file";
+  expanded?: boolean;
+  children?: FileNode[];
+}
 
 export {
+  Alert,
+  CpuUsage,
+  FileNode,
+  languageTemplate,
+  LinePatch,
+  MemoryUsage,
+  MonitorConfig,
+  PerformanceMetric,
+  PerformanceSummary,
   projects,
   projectsRow,
   refreshToken,
-  languageTemplate,
   runWorkerOptions,
-  PerformanceMetric,
-  MemoryUsage,
-  CpuUsage,
-  PerformanceSummary,
-  Alert,
-  MonitorConfig,
   Stats,
-  LinePatch,
 };

@@ -2,9 +2,9 @@ import { Socket } from "socket.io";
 import FileOperations from "../classes/fileOperations";
 import handleFileCreate from "./create";
 import handleRemoveFile from "./delete";
+import handleFileExplorar from "./fileExplorar";
 import { handleDirCreate, handleRemoveDir, handleRenameDir } from "./folder";
 import lineHandler from "./line";
-import handleListFilesOrFolders from "./list";
 import readFileHandler from "./read";
 import handleRenameFile from "./rename";
 import writeFileHandler from "./write";
@@ -43,7 +43,7 @@ const handleInit = async (socket: Socket) => {
     await handleRemoveFile(socket);
     await handleRenameFile(socket);
 
-    await handleListFilesOrFolders(socket);
+    await handleFileExplorar(socket);
 
     await handleDirCreate(socket);
     await handleRenameDir(socket);
